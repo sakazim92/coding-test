@@ -47,8 +47,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        initViews();
-        fetchData();
+        initViews(); //initializes the recycler view and dataList for country data
+        fetchData();//Fetches json data through endpoint https://restcountries.eu/rest/v2/all and loads into to recyclerview as listview
     }
 
     private void initViews(){
@@ -58,22 +58,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void fetchData(){
-        queue= Volley.newRequestQueue(this);
+        queue= Volley.newRequestQueue(this);//initializing volley queue for json request
+
+        //making a json array request
         JsonArrayRequest jsonArrayRequest=new JsonArrayRequest(Request.Method.GET, DATA_URL, new JSONArray(), new Response.Listener<JSONArray>() {
             @Override
             public void onResponse(JSONArray response) {
                 try {
-
-                    int def=response.length();
                     for(int i=0;i<response.length();i++){
                         JSONObject obj=response.getJSONObject(i);
-                        CountryData countryData=new CountryData();
+                        CountryData countryData=new CountryData();//intialize object to hold country data parse from json array
                         countryData.setName(obj.getString("name"));
                         countryData.setCurrency(obj.getJSONArray("currencies").getJSONObject(0).getString("name"));
                         countryData.setLanguage(obj.getJSONArray("languages").getJSONObject(0).getString("name"));
-                        dataList.add(countryData);
+                        dataList.add(countryData);//pushing each country data object into dataList array
                     }
-                    loadData();
+                    loadData();//calling to load data into recyclerview rv
 
                 } catch (JSONException e) {
                     runOnUiThread(new Runnable() {
@@ -98,9 +98,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadData(){
-        adapter=new mAdapter(this,dataList);
-        rv.setAdapter(adapter);
+        adapter=new mAdapter(this,dataList);//initializing adapter for recyclerview rv and passing datalist
+        rv.setAdapter(adapter);//setting the adapter for recyclerview rv
+
+        //Initializing the swiper object with recyclerview and adapter information
         Swiper  swiper = new Swiper(this, rv,adapter) {
+
+            //implementing method to initialize one bomb button for each row of the recycler view
             @Override
             public void instantiateUnderlayButton(RecyclerView.ViewHolder viewHolder, List<UnderlayButton> underlayButtons) {
                 underlayButtons.add(new Swiper.UnderlayButton("bomb Button",MainActivity.this));

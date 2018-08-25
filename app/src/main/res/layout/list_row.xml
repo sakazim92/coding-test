@@ -8,7 +8,8 @@
         android:id="@+id/viewBack"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/view_back">
+        android:background="@color/view_back"
+        android:padding="10dp">
         <ImageView
             android:id="@+id/bomb"
             android:layout_width="40dp"
@@ -24,7 +25,7 @@
         android:orientation="horizontal"
         android:gravity="center"
         android:background="@color/view_front"
-        android:padding="15dp">
+        android:padding="25dp">
         <TextView
             android:id="@+id/country"
             android:layout_width="match_parent"

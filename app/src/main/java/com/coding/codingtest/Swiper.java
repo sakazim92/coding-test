@@ -43,7 +43,7 @@ public abstract class Swiper extends ItemTouchHelper.SimpleCallback {
 
     private VelocityTracker mVelocityTracker;
 
-    private static final int SWIPE_THRESH = 150;
+    private static final int SWIPE_THRESH = 200;
     private static final int SWIPE_VELOCITY_THRESH = 4500;
 
     private static  float veloX = 0;
@@ -59,13 +59,15 @@ public abstract class Swiper extends ItemTouchHelper.SimpleCallback {
             return true;
         }
 
+
+        //implementing method to listen when bomb button is tapped for any row
         @Override
         public boolean onSingleTapConfirmed(MotionEvent e) {
             float tapX=e.getX();
             Log.d("TapX",String.valueOf(e.getX()));
             if(current_index>=0 && tapX>900.0){
 
-                adapter.dismissRow(current_index);
+                adapter.dismissRow(current_index);//deleted the current row from list
             }else{
                 partial_swipe=true;
             }
@@ -84,7 +86,7 @@ public abstract class Swiper extends ItemTouchHelper.SimpleCallback {
             partial_swipe=false;
             if(e.getAction() == MotionEvent.ACTION_DOWN){
                 if (mVelocityTracker == null)
-                    mVelocityTracker = VelocityTracker.obtain();
+                    mVelocityTracker = VelocityTracker.obtain();//calculating swiping speed
                 else
                     mVelocityTracker.clear();
 
@@ -95,12 +97,12 @@ public abstract class Swiper extends ItemTouchHelper.SimpleCallback {
             if(e.getAction() == MotionEvent.ACTION_MOVE)
             {
                 mVelocityTracker.addMovement(e);
-                mVelocityTracker.computeCurrentVelocity(1000,recyclerView.getMaxFlingVelocity());
+                mVelocityTracker.computeCurrentVelocity(1000,recyclerView.getMaxFlingVelocity());//calculating velocity in pixels per second units
                 result= false;
             }
 
             if(e.getAction() == MotionEvent.ACTION_UP){
-                veloX = mVelocityTracker.getXVelocity();
+                veloX = mVelocityTracker.getXVelocity();//keeping track of velocity for each swipe
                 result= false;
             }
 
@@ -111,7 +113,7 @@ public abstract class Swiper extends ItemTouchHelper.SimpleCallback {
                     recoverQueue.add(swipedPos);
                     swipedPos = -1;
                 }
-                recoverSwipedItem();
+                recoverSwipedItem();//if new row is touched or swiped previous row is restored if not deleted
             }
 
             if (swipedPos >=0){
@@ -129,7 +131,7 @@ public abstract class Swiper extends ItemTouchHelper.SimpleCallback {
                     else {
                         recoverQueue.add(swipedPos);
                         swipedPos = -1;
-                        recoverSwipedItem();
+                        recoverSwipedItem();//if new row is touched or swiped previous row is restored if not deleted
                     }
                 }
             }
@@ -144,9 +146,9 @@ public abstract class Swiper extends ItemTouchHelper.SimpleCallback {
         this.recyclerView = recyclerView;
         this.adapter=adapter;
         this.buttons = new ArrayList<>();
-        this.gestureDetector = new GestureDetector(context, gestureListener);
-        this.recyclerView.setOnTouchListener(onTouchListener);
-        buttonsBuffer = new HashMap<>();
+        this.gestureDetector = new GestureDetector(context, gestureListener);//initializing gesture detector with gesture listener to listen for single tap in bomb button
+        this.recyclerView.setOnTouchListener(onTouchListener); //attaching touch listener to recyclerview to listion for (DOWN, MOVE, UP, CANCEL) motion events to calculate swipe speed for each row
+        buttonsBuffer = new HashMap<>();//initialize hashMap to keep track of bomb button showing or not for each row
         recoverQueue = new LinkedList<Integer>(){
             @Override
             public boolean add(Integer o) {
@@ -156,27 +158,26 @@ public abstract class Swiper extends ItemTouchHelper.SimpleCallback {
                     return super.add(o);
             }
         };
-        attachSwipe();
+        attachSwipe();//attacing the swiper object to recyclerview
     }
 
-
+    //event used for drag and drop functionality
     @Override
     public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
         partial_swipe=false;
         return true;
     }
 
+    //method called when swipe action has finished for a row
     @Override
     public void onSwiped(final RecyclerView.ViewHolder viewHolder, int direction) {
         int pos = viewHolder.getAdapterPosition();
 
         if (swipedPos != pos)
         {
-            recoverQueue.add(swipedPos);
+            recoverQueue.add(swipedPos);//keeping track of previous row touched or swiped
         }
-
         swipedPos = pos;
-
 
         if (buttonsBuffer.containsKey(swipedPos))
             buttons = buttonsBuffer.get(swipedPos);
@@ -184,28 +185,31 @@ public abstract class Swiper extends ItemTouchHelper.SimpleCallback {
             buttons.clear();
 
         buttonsBuffer.clear();
-        recoverSwipedItem();
+        recoverSwipedItem();//if new row is touched or swiped previous row is restored if not deleted
 
-        if(!partial_swipe && Math.abs(DX)>0.0)
-            adapter.dismissRow(viewHolder.getAdapterPosition());
+        if(!partial_swipe && Math.abs(DX)>0.0 && veloX<0.0)
+            adapter.dismissRow(viewHolder.getAdapterPosition());//delete the swiped row if not swiped till anchor point (partial swipe is false)
     }
 
+    //implemented method to animate swipe gestures
     @Override
     public void onChildDraw(Canvas c, RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, float dX, float dY, int actionState, boolean isCurrentlyActive) {
         int pos = viewHolder.getAdapterPosition();
-        View foreground=((mHolder)viewHolder).viewFront;
+        View foreground=((mHolder)viewHolder).viewFront;//fetching only the foregrund view (viewFRONT) so background with bomb button remains intact
         float translationX = dX;
         View itemView = viewHolder.itemView;
         if (pos < 0){
             swipedPos = pos;
             return;
         }
-        DX=dX;
+        DX=dX;//keeping track of last swipe displacement in X direction
 
         if(actionState == ItemTouchHelper.ACTION_STATE_SWIPE){
             if(dX < 0) {
-                if(Math.abs(dX)>SWIPE_THRESH){
-                    if(Math.abs(veloX)<SWIPE_VELOCITY_THRESH)
+                getDefaultUIUtil().onDraw(c,recyclerView,foreground,dX,dY,actionState,isCurrentlyActive);
+                partial_swipe=false;
+                if(Math.abs(dX)>SWIPE_THRESH){//if current displacement is greater than the anchor point (SWIPE_THRESH)
+                    if(Math.abs(veloX)<SWIPE_VELOCITY_THRESH)//if swiping velocity veloX is less than the threshold velocity (4500)
                     {
                         List<UnderlayButton> buffer = new ArrayList<>();
 
@@ -216,29 +220,33 @@ public abstract class Swiper extends ItemTouchHelper.SimpleCallback {
                         else {
                             buffer = buttonsBuffer.get(pos);
                         }
-                        translationX = dX * buffer.size() * SWIPE_THRESH / itemView.getWidth();
-                        getDefaultUIUtil().onDraw(c,recyclerView,foreground,translationX,dY,actionState,isCurrentlyActive);
+                        translationX = dX * buffer.size() * SWIPE_THRESH / itemView.getWidth();//calculation for anchor point gives -200
+                        Log.d("translation",String.valueOf(translationX));
+                        getDefaultUIUtil().onDraw(c,recyclerView,foreground,translationX,dY,actionState,isCurrentlyActive);//animation/drawing the foreground view till the anchor point
                         partial_swipe=true;
 
                     }
                     else{
-                        getDefaultUIUtil().onDraw(c,recyclerView,foreground,dX,dY,actionState,isCurrentlyActive);
-                        partial_swipe=false;
+                        if(veloX>0){//if swipe is from left to right veloX should be positive
+                            getDefaultUIUtil().onDraw(c,recyclerView,foreground,0,dY,actionState,isCurrentlyActive);//animation/drawing the foreground view to its initial position
+                            partial_swipe=false;
+                        }
+                        else{
+                            getDefaultUIUtil().onDraw(c,recyclerView,foreground,dX,dY,actionState,isCurrentlyActive);//animation/drawing the foreground view parallel to original swipe gesture
+                            partial_swipe=false;
+                        }
                     }
                 }
-                else if(Math.abs(dX)<SWIPE_THRESH){
-                    getDefaultUIUtil().onDraw(c,recyclerView,foreground,0,dY,actionState,isCurrentlyActive);
-                    partial_swipe=false;
-                }else{
-                    getDefaultUIUtil().onDraw(c,recyclerView,foreground,dX,dY,actionState,isCurrentlyActive);
+                else{//if swipe gesture is less than equal to anchor point
+                    getDefaultUIUtil().onDraw(c,recyclerView,foreground,0,dY,actionState,isCurrentlyActive);//animation/drawing the foreground view to its initial position
                     partial_swipe=false;
                 }
-
             }
 
         }
     }
 
+    //helps in animating previous row to initial position if not deleted
     @Override
     public void clearView(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
         View foreground=((mHolder)viewHolder).viewFront;
@@ -258,18 +266,19 @@ public abstract class Swiper extends ItemTouchHelper.SimpleCallback {
         while (!recoverQueue.isEmpty()){
             int pos = recoverQueue.poll();
             if (pos > -1) {
-                recyclerView.getAdapter().notifyItemChanged(pos);
+                recyclerView.getAdapter().notifyItemChanged(pos);//recovers previously swiped or touched item to initial position if not deleted
             }
         }
     }
 
     public void attachSwipe(){
         ItemTouchHelper itemTouchHelper = new ItemTouchHelper(this);
-        itemTouchHelper.attachToRecyclerView(recyclerView);
+        itemTouchHelper.attachToRecyclerView(recyclerView);//attaches itemtouchhelper to recyclerview to listen and animate views on swipe gestures
     }
 
     public abstract void instantiateUnderlayButton(RecyclerView.ViewHolder viewHolder, List<UnderlayButton> underlayButtons);
 
+    //class to keep track of bomb button for each row
     public static class UnderlayButton {
         private String name;
         Context context;
